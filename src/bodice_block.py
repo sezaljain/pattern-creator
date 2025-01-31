@@ -56,13 +56,12 @@ def create_princess_dart_v2(measurements: dict, armhole_y: float) -> dict:
 
     # Control points - evenly spaced in Y
     y_interval = (start_y - end_y) / 5
-    mid_x = (start_x + end_x) / 2
     control_points = np.array(
         [
             [start_x, start_y],  # P0
-            [0, start_y - y_interval],  # P1
-            [start_x / 2, start_y - 2 * y_interval],  # P2 (upper middle)
-            [start_x / 2, start_y - 3 * y_interval],  # P3 (lower middle)
+            [start_x / 3, start_y - y_interval],  # P1
+            [2 * start_x / 3, start_y - 2 * y_interval],  # P2 (upper middle)
+            [2 * start_x / 3, start_y - 3 * y_interval],  # P3 (lower middle)
             [end_x, end_y + y_interval],  # P4
             [end_x, end_y],  # P5
         ]
@@ -74,7 +73,7 @@ def create_princess_dart_v2(measurements: dict, armhole_y: float) -> dict:
         try:
             t = find_t_for_y(y, control_points)
             point = bezier_point(t, control_points)
-            result[y] = point[0]  # Take x coordinate
+            result[y] = np.round(point[0], 1)  # Take x coordinate
         except ValueError:
             # If y is outside curve range, use linear interpolation
             if y > start_y:
@@ -98,6 +97,76 @@ def create_line_under_armhole(measurements: dict, armhole_y: float) -> dict:
     """
     armhole_x = measurements[armhole_y]
     return {y: armhole_x for y in measurements.keys() if y <= armhole_y}
+
+
+def create_polygons(
+    front_bodice: dict,
+    princess_dart: dict,
+    line_under_armhole: dict,
+    dart_right_side: dict,
+) -> list:
+    """
+    Create polygons for the bodice block pattern
+
+    Args:
+        front_bodice: Dictionary mapping Y coordinates to X values
+        princess_dart: Dictionary mapping Y coordinates to X values for princess dart
+        line_under_armhole: Dictionary mapping Y coordinates to X values for line under armhole
+        dart_right_side: Dictionary mapping Y coordinates to X values for dart right side
+
+    Returns:
+        List of numpy arrays representing polygons
+    """
+    # Get all y coordinates
+    y_coords = sorted(list(front_bodice.keys()))
+
+    # Create first polygon (main body)
+    center_polygon = []
+    # Add bottom point at x=0
+    center_polygon.append([0, y_coords[0]])
+
+    # Add princess dart curve points
+    for y in sorted(princess_dart.keys()):
+        center_polygon.append([princess_dart[y], y])
+
+    # Add points from measurements up to armhole
+    for y in y_coords:
+        if y not in princess_dart:
+            center_polygon.append([front_bodice[y], y])
+    # Add top point at x=0
+    center_polygon.append([0, y])
+    # Close the polygon by adding first point again
+    center_polygon.append(center_polygon[0])
+
+    # Create second polygon (dart right side)
+    side_polygon = []
+    # Add points from dart right side
+    for y in sorted(dart_right_side.keys()):
+        side_polygon.append([dart_right_side[y], y])
+
+    # Add points from princess dart not present in dart right side
+    temp = []
+    for y in sorted(princess_dart.keys()):
+        if y not in dart_right_side:
+            side_polygon.append([princess_dart[y], y])
+            temp.append([front_bodice[y], y])
+
+    temp.reverse()
+    for t in temp:
+        side_polygon.append(t)
+    # Add points from line under armhole
+    for y in line_under_armhole.keys():
+        side_polygon.append([line_under_armhole[y], y])
+
+    # Close the polygon by adding first point again
+    side_polygon.append(side_polygon[0])
+
+    # move polygons so that they dont overlap
+    center_polygon = np.array(center_polygon)
+    side_polygon = np.array(side_polygon)
+    offset = np.max(center_polygon[:, 0]) - np.min(side_polygon[:, 0])
+    side_polygon[:, 0] += offset
+    return [center_polygon, side_polygon]
 
 
 def create_bodice_block(front_bodice: dict, armhole_index: int):
@@ -169,6 +238,26 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
     plt.axis("equal")
     plt.grid(True)
     plt.gca().set_aspect("equal")
+    plt.savefig("plot1.png")
+    plt.close()
+
+    # Plot polygons in separate figure
+    polygons = create_polygons(
+        front_bodice, princess_dart, line_under_armhole, dart_right_side
+    )
+    plt.figure(figsize=(5, 5))
+    for polygon in polygons:
+        plt.plot(polygon[:, 0], polygon[:, 1], alpha=0.3)
+        plt.plot(polygon[:, 0], polygon[:, 1], "k-")
+
+    plt.grid(True)
+    plt.title("Bodice Block Pattern")
+    plt.xlabel("X (Width)")
+    plt.ylabel("Y (Height)")
+    plt.axis("equal")
+    plt.gca().set_aspect("equal")
+    plt.savefig("plot2.png")
     plt.show()
+    # plt.close()
 
     return front_bodice

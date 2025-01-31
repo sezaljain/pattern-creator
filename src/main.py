@@ -12,4 +12,4 @@ front_lateral_measurements = {y: x2 for y, x2 in zip(front_df["Y"], front_df["X2
 
 
 # Create bodice block
-create_bodice_block(front_lateral_measurements, armhole_index=6)
+create_bodice_block(front_lateral_measurements, armhole_index=10)

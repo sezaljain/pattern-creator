@@ -3,9 +3,12 @@ from bodice_block import create_bodice_block
 
 # Read the CSV files
 profile = pd.read_csv("profile_outline.csv")
-front = pd.read_csv("frontLaterMeasurements.csv")
+front_df = pd.read_csv("frontLaterMeasurements.csv")
 front_outline = pd.read_csv("front_outline.csv")
 
+# Convert front measurements to map
+front_lateral_measurements = {y: x2 for y, x2 in zip(front_df["Y"], front_df["X2"])}
+print(front_lateral_measurements)
 # Create the plot with equal aspect ratio
 # plt.figure(figsize=(10, 8))
 # plt.gca().set_aspect("equal")
@@ -33,4 +36,4 @@ front_outline = pd.read_csv("front_outline.csv")
 # plt.show()
 
 # Create bodice block
-create_bodice_block(front, armhole_index=5)
+create_bodice_block(front_lateral_measurements, armhole_index=6)

@@ -1,104 +1,111 @@
+import math
+
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 
 
-def create_princess_dart(coords: np.ndarray, armhole_index: int) -> np.ndarray:
+def create_princess_dart(measurements: dict, armhole_y: float) -> dict:
     """
-    Create a princess dart curve starting from armhole point
+    Create a princess dart curve starting from above armhole point
 
     Args:
-        coords: 2D array of coordinates [[x1,y1], [x2,y2], ...]
-        armhole_index: Index marking the armhole position
+        measurements: Dict mapping Y coordinates to X values
+        armhole_y: Y coordinate of armhole point
 
     Returns:
-        2D array of curve coordinates
+        Dict mapping Y coordinates to X values for princess dart curve
     """
-    # Extract points below armhole
-    points_below = coords[armhole_index:]
-    y_coords = points_below[:, 1]
+    # Start 4cm above armhole
+    curve_points = {y: x for y, x in measurements.items() if y <= armhole_y + 4}
+    start_y = max(curve_points.keys())
+    start_x = measurements[start_y]  # X value at start of curve
 
-    # Create curve that bends inward
-    x_start = coords[armhole_index, 0]  # Armhole x position
-    x_curve = np.full_like(y_coords, x_start)
+    # Create curve by moving points inward
+    curve_depth = 7.0  # cm
+    i = 0
+    interval = 1 / len(curve_points)
+    for y in curve_points:
+        # Calculate relative position in curve (0 to 1)
+        t = interval * i
+        i = i + 1
+        # Apply sine curve for inward bend
+        inward_shift = curve_depth * math.sin(t * math.pi)
+        curve_points[y] = start_x - inward_shift
 
-    # Add curve by moving points inward, max at middle
-    curve_depth = 5.0  # cm
-    t = np.linspace(0, 1, len(y_coords))
-    curve = curve_depth * np.sin(t * np.pi)
-    x_curve -= curve
-    print(np.column_stack((x_curve, y_coords)))
-
-    return np.column_stack((x_curve, y_coords))
+    # curve_points[9] = 15
+    print(curve_points)
+    return curve_points
 
 
-def add_cut(curve_array: np.ndarray, coords: np.ndarray, armhole_index: int):
+def create_line_under_armhole(measurements: dict, armhole_y: float) -> dict:
     """
-    Add a cut line to the existing bodice block figure
+    Create a straight line under the armhole point
 
     Args:
-        curve_array: 2D array of princess dart curve coordinates
-        coords: 2D array of original coordinates
-        armhole_index: Index marking the armhole position
+        measurements: Dict mapping Y coordinates to X values
+        armhole_y: Y coordinate of armhole point
+
+    Returns:
+        Dict mapping Y coordinates to X values for line under armhole
     """
-    # Plot princess dart curve
-    plt.plot(
-        curve_array[:, 0],
-        curve_array[:, 1],
-        "g-",
-        label="Princess Dart",
-    )
-
-    # Get points below armhole from original coords
-    coords_below = coords[armhole_index:]
-
-    # Calculate horizontal distances between curve and original points
-    distances = coords_below[:, 0] - curve_array[:, 0]
-
-    # Create new points by adding distances to max width
-    max_x = np.max(coords[:, 0])
-    new_x = max_x - distances
-    new_points = np.column_stack((new_x, curve_array[:, 1]))
-
-    # Plot the mirrored curve
-    plt.plot(
-        new_points[:, 0],
-        new_points[:, 1],
-        "y-",
-        label="_nolegend_",
-    )
+    armhole_x = measurements[armhole_y]
+    return {y: armhole_x for y in measurements.keys() if y <= armhole_y}
 
 
-def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index: int):
+def create_bodice_block(front_bodice: dict, armhole_index: int):
     """
     Create a bodice block pattern from front lateral measurements
 
     Args:
-        front_lateral_measurements: DataFrame with columns [Y, X2]
+        front_lateral_measurements: Dictionary mapping Y coordinates to X values
         armhole_index: Index marking the armhole position
 
     Returns:
-        DataFrame with bodice block pattern points
+        Dict with bodice block pattern points
     """
-    # Extract measurements
-    y_coords = front_lateral_measurements["Y"].values
-    x_coords = front_lateral_measurements["X2"].values
-    print(x_coords[armhole_index], y_coords[armhole_index])
+    # Get armhole point
+    armhole_y = list(front_bodice.keys())[armhole_index]
+    armhole_x = front_bodice[armhole_y]
+
     # Plot the measurements
     plt.figure(figsize=(5, 5))
+    y_coords = list(front_bodice.keys())
+    x_coords = list(front_bodice.values())
+    plt.plot(x_coords, y_coords, "grey", label="Front Profile", linestyle="dashed")
+    plt.plot(armhole_x, armhole_y, "ro", label="Armhole Point")
+
+    # Create line under armhole and princess dart
+    line_under_armhole = create_line_under_armhole(front_bodice, armhole_y)
+    princess_dart = create_princess_dart(front_bodice, armhole_y)
+
+    # Create dart right side
+    dart_right_side = {}
+    for key in line_under_armhole:
+        if key in princess_dart:
+            dart_right_side[key] = (
+                princess_dart[key] - front_bodice[key] + line_under_armhole[key]
+            )
+
+    # Plot curves
     plt.plot(
-        x_coords,
-        y_coords,
-        "grey",
-        label="Front Profile",
-        linestyle="dashed",
+        line_under_armhole.values(),
+        line_under_armhole.keys(),
+        "r--",
+        label="Line Under Armhole",
     )
     plt.plot(
-        x_coords[armhole_index], y_coords[armhole_index], "ro", label="Armhole Point"
+        list(princess_dart.values()),
+        list(princess_dart.keys()),
+        "g-",
+        label="Princess Dart",
+    )
+    plt.plot(
+        list(dart_right_side.values()),
+        list(dart_right_side.keys()),
+        "b-",
+        label="Dart Right Side",
     )
 
     # Draw horizontal line through armhole and vertical line at max width
-    armhole_y = y_coords[armhole_index]
     max_x = max(x_coords[armhole_index:])
     plt.axhline(
         y=armhole_y, color="powderblue", linestyle="--", label="Horizontal Line"
@@ -113,11 +120,6 @@ def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index:
     plt.axis("equal")
     plt.grid(True)
     plt.gca().set_aspect("equal")
-
-    # Create and add princess dart curve
-    coords = np.column_stack((x_coords, y_coords))
-    princess_curve = create_princess_dart(coords, armhole_index)
-    add_cut(princess_curve, coords, armhole_index)
-
     plt.show()
-    return pd.DataFrame({"Y": y_coords, "X2": x_coords})
+
+    return front_bodice

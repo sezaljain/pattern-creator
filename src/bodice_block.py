@@ -1,5 +1,17 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+
+
+def add_cut(curve_array: np.ndarray, coords: np.ndarray):
+    """
+    Add a cut line to the existing bodice block figure
+
+    Args:
+        curve_array: 2D array of cut line coordinates [[x1,y1], [x2,y2], ...]
+        coords: 2D array of coordinates to match [[x1,y1], [x2,y2], ...]
+    """
+    plt.plot(curve_array[:, 0], curve_array[:, 1], "g-", label="Cut Line")
 
 
 def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index: int):
@@ -38,6 +50,12 @@ def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index:
     plt.axis("equal")
     plt.grid(True)
     plt.gca().set_aspect("equal")
-    plt.show()
 
+    # Add vertical line through armhole as 2D array
+    cut_x = np.full_like(y_coords, x_coords[armhole_index])
+    cut_line = np.column_stack((cut_x, y_coords))
+    coords = np.column_stack((x_coords, y_coords))
+    add_cut(cut_line, coords)
+
+    plt.show()
     return pd.DataFrame({"Y": y_coords, "X2": x_coords})

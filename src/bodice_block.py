@@ -1,6 +1,8 @@
 import math
 
 import matplotlib.pyplot as plt
+import numpy as np
+from bezier_curve import bezier_point, find_t_for_y  # Same directory import
 
 
 def create_princess_dart(measurements: dict, armhole_y: float) -> dict:
@@ -20,7 +22,7 @@ def create_princess_dart(measurements: dict, armhole_y: float) -> dict:
     start_x = measurements[start_y]  # X value at start of curve
 
     # Create curve by moving points inward
-    curve_depth = 7.0  # cm
+    curve_depth = 10.0  # cm
     i = 0
     interval = 1 / len(curve_points)
     for y in curve_points:
@@ -31,9 +33,56 @@ def create_princess_dart(measurements: dict, armhole_y: float) -> dict:
         inward_shift = curve_depth * math.sin(t * math.pi)
         curve_points[y] = start_x - inward_shift
 
-    # curve_points[9] = 15
-    print(curve_points)
     return curve_points
+
+
+def create_princess_dart_v2(measurements: dict, armhole_y: float) -> dict:
+    """
+    Create a princess dart curve using bezier curve with 4 control points
+
+    Args:
+        measurements: Dict mapping Y coordinates to X values
+        armhole_y: Y coordinate of armhole point
+
+    Returns:
+        Dict mapping Y coordinates to X values for princess dart curve
+    """
+    curve_points = {y: x for y, x in measurements.items() if y <= armhole_y + 4}
+    start_y = max(curve_points.keys())
+    start_x = measurements[start_y]
+    end_y = 9  # Waist level
+    waist_x = measurements[end_y]
+    end_x = waist_x / 2  # End at 2/3 of waist x-coordinate
+
+    # Control points - evenly spaced in Y
+    y_interval = (start_y - end_y) / 5
+    mid_x = (start_x + end_x) / 2
+    control_points = np.array(
+        [
+            [start_x, start_y],  # P0
+            [0, start_y - y_interval],  # P1
+            [start_x / 2, start_y - 2 * y_interval],  # P2 (upper middle)
+            [start_x / 2, start_y - 3 * y_interval],  # P3 (lower middle)
+            [end_x, end_y + y_interval],  # P4
+            [end_x, end_y],  # P5
+        ]
+    )
+
+    # Calculate points along bezier curve
+    result = {}
+    for y in curve_points:
+        try:
+            t = find_t_for_y(y, control_points)
+            point = bezier_point(t, control_points)
+            result[y] = point[0]  # Take x coordinate
+        except ValueError:
+            # If y is outside curve range, use linear interpolation
+            if y > start_y:
+                result[y] = start_x
+            else:
+                result[y] = end_x
+
+    return result
 
 
 def create_line_under_armhole(measurements: dict, armhole_y: float) -> dict:
@@ -75,7 +124,7 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
 
     # Create line under armhole and princess dart
     line_under_armhole = create_line_under_armhole(front_bodice, armhole_y)
-    princess_dart = create_princess_dart(front_bodice, armhole_y)
+    princess_dart = create_princess_dart_v2(front_bodice, armhole_y)
 
     # Create dart right side
     dart_right_side = {}

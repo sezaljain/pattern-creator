@@ -24,9 +24,11 @@ def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index:
         x_coords[armhole_index], y_coords[armhole_index], "ro", label="Armhole Point"
     )
 
-    # Find maximum x below armhole point
+    # Draw horizontal line through armhole and vertical line at max width
+    armhole_y = y_coords[armhole_index]
     max_x = max(x_coords[armhole_index:])
-    plt.axvline(x=max_x, color="r", linestyle="--", label="Max Width Line")
+    plt.axhline(y=armhole_y, color="r", linestyle="--", label="Horizontal Line")
+    plt.axvline(x=max_x, color="b", linestyle="--", label="Max Width Line")
 
     plt.grid(True)
     plt.legend()

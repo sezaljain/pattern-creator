@@ -6,6 +6,8 @@ authors = ["Sezal Jain"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+matplotlib = "^3.8.2"
+pandas = "^2.2.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.14"

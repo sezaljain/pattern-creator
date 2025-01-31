@@ -1,26 +1,24 @@
-"""Main module for pattern creation."""
+import matplotlib.pyplot as plt
+import pandas as pd
 
+# Read the CSV files
+profile = pd.read_csv("profile_outline.csv")
+front = pd.read_csv("frontLaterMeasurements.csv")
 
-def create_pattern(size: int) -> str:
-    """Create a simple star pattern.
+# Create the plot
+plt.figure(figsize=(10, 8))
 
-    Args:
-        size: The size of the pattern
+# Plot profile outline
+plt.plot(profile["X"], profile["Y"], "b-", label="Profile Outline")
 
-    Returns:
-        The pattern as a string
-    """
-    pattern = []
-    for i in range(size):
-        pattern.append("*" * (i + 1))
-    return "\n".join(pattern)
+# Plot front measurements
+plt.scatter(front["X"], front["Y"], color="red", label="Front Measurements")
 
+plt.grid(True)
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.title("Profile and Front Measurements")
+plt.legend()
 
-def main() -> None:
-    """Main function."""
-    pattern = create_pattern(5)
-    print(pattern)
-
-
-if __name__ == "__main__":
-    main()
+plt.savefig("plot.png")
+plt.close()

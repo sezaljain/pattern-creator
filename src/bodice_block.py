@@ -3,45 +3,70 @@ import numpy as np
 import pandas as pd
 
 
-def add_cut(curve_array: np.ndarray, coords: np.ndarray):
+def create_princess_dart(coords: np.ndarray, armhole_index: int) -> np.ndarray:
+    """
+    Create a princess dart curve starting from armhole point
+
+    Args:
+        coords: 2D array of coordinates [[x1,y1], [x2,y2], ...]
+        armhole_index: Index marking the armhole position
+
+    Returns:
+        2D array of curve coordinates
+    """
+    # Extract points below armhole
+    points_below = coords[armhole_index:]
+    y_coords = points_below[:, 1]
+
+    # Create curve that bends inward
+    x_start = coords[armhole_index, 0]  # Armhole x position
+    x_curve = np.full_like(y_coords, x_start)
+
+    # Add curve by moving points inward, max at middle
+    curve_depth = 5.0  # cm
+    t = np.linspace(0, 1, len(y_coords))
+    curve = curve_depth * np.sin(t * np.pi)
+    x_curve -= curve
+    print(np.column_stack((x_curve, y_coords)))
+
+    return np.column_stack((x_curve, y_coords))
+
+
+def add_cut(curve_array: np.ndarray, coords: np.ndarray, armhole_index: int):
     """
     Add a cut line to the existing bodice block figure
 
     Args:
-        curve_array: 2D array of cut line coordinates [[x1,y1], [x2,y2], ...]
-        coords: 2D array of coordinates to match [[x1,y1], [x2,y2], ...]
+        curve_array: 2D array of princess dart curve coordinates
+        coords: 2D array of original coordinates
+        armhole_index: Index marking the armhole position
     """
-    # Find intersection point (assuming vertical line)
-    intersection_y = None
-    for i in range(len(coords)):
-        if np.abs(coords[i, 0] - curve_array[i, 0]) < 1e-6:
-            intersection_y = coords[i, 1]
-            break
+    # Plot princess dart curve
+    plt.plot(
+        curve_array[:, 0],
+        curve_array[:, 1],
+        "g-",
+        label="Princess Dart",
+    )
 
-    if intersection_y is not None:
-        # Only plot cut line below intersection
-        mask_below = curve_array[:, 1] <= intersection_y
-        if np.any(mask_below):
-            plt.plot(
-                curve_array[mask_below, 0],
-                curve_array[mask_below, 1],
-                "g-",
-                label="Cut Line",
-            )
-            # Calculate distances between curve and coords for points below intersection
-            coords_below = coords[coords[:, 1] <= intersection_y]
-            curve_below = curve_array[mask_below]
-            distances = coords_below[:, 0] - curve_below[:, 0]
-            # Create new points by adding distances to max width
-            max_x = np.max(coords[:, 0])
-            new_x = max_x - distances
-            new_points = np.column_stack((new_x, coords_below[:, 1]))
-            plt.plot(
-                new_points[:, 0],
-                new_points[:, 1],
-                "y-",
-                label="_nolegend_",
-            )
+    # Get points below armhole from original coords
+    coords_below = coords[armhole_index:]
+
+    # Calculate horizontal distances between curve and original points
+    distances = coords_below[:, 0] - curve_array[:, 0]
+
+    # Create new points by adding distances to max width
+    max_x = np.max(coords[:, 0])
+    new_x = max_x - distances
+    new_points = np.column_stack((new_x, curve_array[:, 1]))
+
+    # Plot the mirrored curve
+    plt.plot(
+        new_points[:, 0],
+        new_points[:, 1],
+        "y-",
+        label="_nolegend_",
+    )
 
 
 def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index: int):
@@ -89,11 +114,10 @@ def create_bodice_block(front_lateral_measurements: pd.DataFrame, armhole_index:
     plt.grid(True)
     plt.gca().set_aspect("equal")
 
-    # Add vertical line through armhole as 2D array
-    cut_x = np.full_like(y_coords, x_coords[armhole_index])
-    cut_line = np.column_stack((cut_x, y_coords))
+    # Create and add princess dart curve
     coords = np.column_stack((x_coords, y_coords))
-    add_cut(cut_line, coords)
+    princess_curve = create_princess_dart(coords, armhole_index)
+    add_cut(princess_curve, coords, armhole_index)
 
     plt.show()
     return pd.DataFrame({"Y": y_coords, "X2": x_coords})

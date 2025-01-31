@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "pattern-creator"
 version = "0.1.0"
-description = "A Python project for creating patterns"
-authors = ["Sezal Jain"]
+description = ""
+authors = ["Sezal Jain <sezaljain90@gmail.com>"]
+readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.12"
 matplotlib = "^3.8.2"
 pandas = "^2.2.3"
 

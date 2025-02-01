@@ -62,7 +62,7 @@ def create_princess_dart_v2(measurements: dict, armhole_y: float) -> dict:
             [start_x / 3, start_y - y_interval],  # P1
             [2 * start_x / 3, start_y - 2 * y_interval],  # P2 (upper middle)
             [2 * start_x / 3, start_y - 3 * y_interval],  # P3 (lower middle)
-            [end_x, end_y + y_interval],  # P4
+            [end_x - 3, end_y + y_interval],  # P4
             [end_x, end_y],  # P5
         ]
     )
@@ -185,7 +185,7 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
     armhole_x = front_bodice[armhole_y]
 
     # Plot the measurements
-    plt.figure(figsize=(5, 5))
+    plt.figure(2)
     y_coords = list(front_bodice.keys())
     x_coords = list(front_bodice.values())
     plt.plot(x_coords, y_coords, "grey", label="Front Profile", linestyle="dashed")
@@ -202,6 +202,18 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
             dart_right_side[key] = (
                 princess_dart[key] - front_bodice[key] + line_under_armhole[key]
             )
+
+    # Plot polygons in separate figure
+    polygons = create_polygons(
+        front_bodice, princess_dart, line_under_armhole, dart_right_side
+    )
+
+    # Create mirrored polygons
+    mirrored_polygons = []
+    for polygon in polygons:
+        mirrored = polygon.copy()
+        mirrored[:, 0] = -mirrored[:, 0]  # Negate x coordinates
+        mirrored_polygons.append(mirrored)
 
     # Plot curves
     plt.plot(
@@ -241,17 +253,20 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
     plt.savefig("plot1.png")
     plt.close()
 
-    # Plot polygons in separate figure
-    polygons = create_polygons(
-        front_bodice, princess_dart, line_under_armhole, dart_right_side
-    )
-    plt.figure(figsize=(5, 5))
+    plt.figure(figsize=(10, 5))
+
+    # Plot original polygons
     for polygon in polygons:
         plt.plot(polygon[:, 0], polygon[:, 1], alpha=0.3)
         plt.plot(polygon[:, 0], polygon[:, 1], "k-")
 
+    # Plot mirrored polygons
+    for polygon in mirrored_polygons:
+        plt.plot(polygon[:, 0], polygon[:, 1], alpha=0.3)
+        plt.plot(polygon[:, 0], polygon[:, 1], "k-")
+
     plt.grid(True)
-    plt.title("Bodice Block Pattern")
+    plt.title("Bodice Block Pattern with Mirrored Pieces")
     plt.xlabel("X (Width)")
     plt.ylabel("Y (Height)")
     plt.axis("equal")

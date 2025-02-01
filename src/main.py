@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 from bodice_block import create_bodice_block
 
@@ -10,6 +11,18 @@ front_outline = pd.read_csv("front_outline.csv")
 # Convert front measurements to map
 front_lateral_measurements = {y: x2 for y, x2 in zip(front_df["Y"], front_df["X2"])}
 
+# Plot all data in single figure
+plt.figure(1, figsize=(10, 6))
+plt.plot(front_df["X2"] - 40, front_df["Y"], label="front_df")
+plt.plot(front_df["X1"] - 40, front_df["Y"], label="front_df")
+plt.plot(front_outline["X1"], front_outline["Y"], label="front_outline", color="g")
+plt.plot(front_outline["X2"], front_outline["Y"], label="front_outline", color="g")
+plt.plot(profile["X"] + 60, profile["Y"], label="profile")
+# plt.legend()
+plt.grid(True)
+plt.axis("equal")
+plt.savefig("combined_plot.png")
+# plt.show()
 
 # Create bodice block
 create_bodice_block(front_lateral_measurements, armhole_index=10)

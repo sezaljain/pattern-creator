@@ -1,42 +1,9 @@
-import math
-
 import matplotlib.pyplot as plt
 import numpy as np
 from bezier_curve import bezier_point, find_t_for_y  # Same directory import
 
 
 def create_princess_dart(measurements: dict, armhole_y: float) -> dict:
-    """
-    Create a princess dart curve starting from above armhole point
-
-    Args:
-        measurements: Dict mapping Y coordinates to X values
-        armhole_y: Y coordinate of armhole point
-
-    Returns:
-        Dict mapping Y coordinates to X values for princess dart curve
-    """
-    # Start 4cm above armhole
-    curve_points = {y: x for y, x in measurements.items() if y <= armhole_y + 4}
-    start_y = max(curve_points.keys())
-    start_x = measurements[start_y]  # X value at start of curve
-
-    # Create curve by moving points inward
-    curve_depth = 10.0  # cm
-    i = 0
-    interval = 1 / len(curve_points)
-    for y in curve_points:
-        # Calculate relative position in curve (0 to 1)
-        t = interval * i
-        i = i + 1
-        # Apply sine curve for inward bend
-        inward_shift = curve_depth * math.sin(t * math.pi)
-        curve_points[y] = start_x - inward_shift
-
-    return curve_points
-
-
-def create_princess_dart_v2(measurements: dict, armhole_y: float) -> dict:
     """
     Create a princess dart curve using bezier curve with 4 control points
 
@@ -193,7 +160,7 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
 
     # Create line under armhole and princess dart
     line_under_armhole = create_line_under_armhole(front_bodice, armhole_y)
-    princess_dart = create_princess_dart_v2(front_bodice, armhole_y)
+    princess_dart = create_princess_dart(front_bodice, armhole_y)
 
     # Create dart right side
     dart_right_side = {}
@@ -215,7 +182,7 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
         mirrored[:, 0] = -mirrored[:, 0]  # Negate x coordinates
         mirrored_polygons.append(mirrored)
 
-    # Plot curves
+    # ------------------ Plot all lines, curves and polygons------------------
     plt.plot(
         line_under_armhole.values(),
         line_under_armhole.keys(),
@@ -250,7 +217,7 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
     plt.axis("equal")
     plt.grid(True)
     plt.gca().set_aspect("equal")
-    plt.savefig("plot1.png")
+    plt.savefig("plotC.png")
     plt.close()
 
     plt.figure(figsize=(10, 5))
@@ -266,12 +233,12 @@ def create_bodice_block(front_bodice: dict, armhole_index: int):
         plt.plot(polygon[:, 0], polygon[:, 1], "k-")
 
     plt.grid(True)
-    plt.title("Bodice Block Pattern with Mirrored Pieces")
+    plt.title("Front Section of a Princess Cut based Bodice Block")
     plt.xlabel("X (Width)")
     plt.ylabel("Y (Height)")
     plt.axis("equal")
     plt.gca().set_aspect("equal")
-    plt.savefig("plot2.png")
+    plt.savefig("plotB.png")
     plt.show()
     # plt.close()
 
